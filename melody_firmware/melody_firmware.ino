@@ -1,13 +1,25 @@
-/*
-  Arduino Mario Bros Tunes
-  With Piezo Buzzer and PWM
-  by: Dipto Pratyaksa
-  last updated: 31/3/13
-*/
-#include <pitches.h>
+/**
 
-#define melodyPin 3
-//Mario main theme melody
+
+
+**/
+
+// Power-saving functions
+#include <JeeLib.h> 
+
+// Setup watchdog
+ISR(WDT_vect) { Sleepy::watchdogEvent(); }
+
+// Tone frequencies
+#include "pitches.h"
+
+// ATtiny85 pin 0 as PWM for the buzzer
+#define melodyPin 0
+
+// Analog in pin for the trigger
+#define triggerPin 3
+
+// Mario main theme melody by Diptop Pratyaksa 31/3/13
 int melody[] = {
   NOTE_E7, NOTE_E7, 0, NOTE_E7, 
   0, NOTE_C7, NOTE_E7, 0,
@@ -34,7 +46,8 @@ int melody[] = {
   0, NOTE_E7, 0,NOTE_C7, 
   NOTE_D7, NOTE_B6, 0, 0
 };
-//Mario main them tempo
+
+// Mario main them tempo
 int tempo[] = {
   12, 12, 12, 12, 
   12, 12, 12, 12,
@@ -62,95 +75,44 @@ int tempo[] = {
   12, 12, 12, 12,
 };
 
-//
-//Underworld melody
-int underworld_melody[] = {
-  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4, 
-  NOTE_AS3, NOTE_AS4, 0,
-  0,
-  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4, 
-  NOTE_AS3, NOTE_AS4, 0,
-  0,
-  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
-  NOTE_DS3, NOTE_DS4, 0,
-  0,
-  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
-  NOTE_DS3, NOTE_DS4, 0,
-  0, NOTE_DS4, NOTE_CS4, NOTE_D4,
-  NOTE_CS4, NOTE_DS4, 
-  NOTE_DS4, NOTE_GS3,
-  NOTE_G3, NOTE_CS4,
-  NOTE_C4, NOTE_FS4,NOTE_F4, NOTE_E3, NOTE_AS4, NOTE_A4,
-  NOTE_GS4, NOTE_DS4, NOTE_B3,
-  NOTE_AS3, NOTE_A3, NOTE_GS3,
-  0, 0, 0
-};
-//Underwolrd tempo
-int underworld_tempo[] = {
-  12, 12, 12, 12, 
-  12, 12, 6,
-  3,
-  12, 12, 12, 12, 
-  12, 12, 6,
-  3,
-  12, 12, 12, 12, 
-  12, 12, 6,
-  3,
-  12, 12, 12, 12, 
-  12, 12, 6,
-  6, 18, 18, 18,
-  6, 6,
-  6, 6,
-  6, 6,
-  18, 18, 18,18, 18, 18,
-  10, 10, 10,
-  10, 10, 10,
-  3, 3, 3
-};
 
 void setup(void)
 {
-   pinMode(3, OUTPUT);//buzzer
-   pinMode(13, OUTPUT);//led indicator when singing a note
-
+   pinMode(melodyPin, OUTPUT); // Buzzer
+   pinMode(triggerPin, INPUT); // Trigger
 }
+
 void loop()
 {
-//sing the tunes
-  sing(1);
-  sing(1);
-  sing(2);
+
+  // Play melody when trigger is active
+  if (isTriggerActive(true)) {
+    sing();
+  }
+  
+  // Otherwise, standby mode
+  Sleepy::loseSomeTime(1000);
 }
-int song = 0;
 
-void sing(int s){      
-   // iterate over the notes of the melody:
-   song = s;
-   if(song==2){
-     Serial.println(" 'Underworld Theme'");
-     int size = sizeof(underworld_melody) / sizeof(int);
-     for (int thisNote = 0; thisNote < size; thisNote++) {
-
-       // to calculate the note duration, take one second
-       // divided by the note type.
-       //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
-       int noteDuration = 1000/underworld_tempo[thisNote];
-
-       buzz(melodyPin, underworld_melody[thisNote],noteDuration);
-
-       // to distinguish the notes, set a minimum time between them.
-       // the note's duration + 30% seems to work well:
-       int pauseBetweenNotes = noteDuration * 1.30;
-       delay(pauseBetweenNotes);
-
-       // stop the tone playing:
-       buzz(melodyPin, 0,noteDuration);
-
+// Read the trigger pin and return true when it's high. Optionally, (software) debounce the reading
+boolean isTriggerActive(boolean debounce){
+  if (digitalRead(triggerPin) == HIGH) {
+    if (!debounce) {
+      return true;
     }
+    
+    delay(50);
+    if (digitalRead(triggerPin) == HIGH) {
+       return true; 
+    }
+  }
+  
+  return false;  
+}
 
-   }else{
 
-     Serial.println(" 'Mario Theme'");
+// Play melody
+void sing(){      
      int size = sizeof(melody) / sizeof(int);
      for (int thisNote = 0; thisNote < size; thisNote++) {
 
@@ -168,13 +130,15 @@ void sing(int s){
 
        // stop the tone playing:
        buzz(melodyPin, 0,noteDuration);
-
+       
+       // Stop playing when the trigger is LOW
+       if (!isTriggerActive(false)) {
+         break;
+       }
     }
-  }
 }
 
 void buzz(int targetPin, long frequency, long length) {
-  digitalWrite(13,HIGH);
   long delayValue = 1000000/frequency/2; // calculate the delay value between transitions
   //// 1 second's worth of microseconds, divided by the frequency, then split in half since
   //// there are two phases to each cycle
@@ -187,6 +151,4 @@ void buzz(int targetPin, long frequency, long length) {
     digitalWrite(targetPin,LOW); // write the buzzer pin low to pull back the diaphram
     delayMicroseconds(delayValue); // wait again or the calculated delay value
   }
-  digitalWrite(13,LOW);
-
 }

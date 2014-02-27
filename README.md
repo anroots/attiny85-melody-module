@@ -9,4 +9,4 @@ A PCB that plays a preprogrammed MIDI tune via a Piezo buzzer.
 * Adjust sound loudness via a trimpot
 * Reed switch trigger
 
-![Finished module]()
+![Finished module](https://raw.github.com/anroots/attiny85-melody-module/master/finished_module.jpg)
