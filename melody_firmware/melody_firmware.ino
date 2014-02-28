@@ -1,7 +1,14 @@
 /**
-
-
-
+ * ATtiny85 Melody Module
+ * 
+ * The board operates from a coincell battery (CR2032 3V 225mAh) and
+ * plays a melody (piezo) when the trigger pin is HIGH. Can be triggered via
+ * a reed switch or with the output headers from an external source.
+ * 
+ * Ando David Roots <david@sqroot.eu>
+ * 2014-02-25
+ * http://sqroot.eu/2014/02/attiny85-melody-module
+ *
 **/
 
 // Power-saving functions
@@ -96,6 +103,7 @@ void loop()
 
 // Read the trigger pin and return true when it's high. Optionally, (software) debounce the reading
 boolean isTriggerActive(boolean debounce){
+  
   if (digitalRead(triggerPin) == HIGH) {
     if (!debounce) {
       return true;
